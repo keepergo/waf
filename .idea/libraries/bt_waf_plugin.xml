@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="bt_waf_plugin">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bt_waf_plugin.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

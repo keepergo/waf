@@ -1,0 +1,14 @@
+{
+    "title": "BT-WAF 网站防火墙",
+    "tip": "lib",
+    "name": "bt_waf",
+    "type": "免费应用",
+    "ps": "基于ngx_lua_waf的网站防火墙，支持多站点管理、实时访问监控、规则配置",
+    "checks": ["nginx"],
+    "author": "BT-WAF Team",
+    "home": "https://github.com/loveshell/ngx_lua_waf",
+    "date": "2026-06-18",
+    "default": false,
+    "display": 0,
+    "versions": "1.0.0"
+}
