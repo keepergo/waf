@@ -1,1095 +1,1272 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BT-WAF 网站防火墙</title>
-  <style>
-    :root {
-      --bg: #0b1120;
-      --bg2: #111827;
-      --bg3: #1e293b;
-      --ink: #f1f5f9;
-      --muted: #94a3b8;
-      --rule: #1e293b;
-      --accent: #0ea5e9;
-      --accent2: #ef4444;
-      --accent3: #10b981;
-      --accent4: #f59e0b;
-      --accent-glow: rgba(14, 165, 233, 0.15);
-      --card-bg: rgba(30, 41, 59, 0.6);
-      --border: rgba(148, 163, 184, 0.1);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BT-WAF 网站防火墙</title>
+    <style>
+        :root {
+            --bg: #0b1120;
+            --bg2: #111827;
+            --bg3: #1e293b;
+            --ink: #f1f5f9;
+            --muted: #94a3b8;
+            --rule: #1e293b;
+            --accent: #0ea5e9;
+            --accent2: #ef4444;
+            --accent3: #10b981;
+            --accent4: #f59e0b;
+            --accent-glow: rgba(14, 165, 233, 0.15);
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --border: rgba(148, 163, 184, 0.1);
+        }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--ink);
-      background: var(--bg);
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
+        html, body {
+            /*width: 1200px;*/
+            height: 100%;
+            overflow: hidden;
+        }
 
-    /* ── Layout ── */
-    .app { display: flex; min-height: 100vh; }
+        body {
+            font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--ink);
+            background: var(--bg);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      width: 220px;
-      background: var(--bg2);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      height: 100vh;
-      z-index: 100;
-    }
-    .sidebar-brand {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .sidebar-brand .logo {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--accent), #0284c7);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-    .sidebar-brand h1 {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    .sidebar-brand span {
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 500;
-    }
-    .sidebar-nav {
-      flex: 1;
-      padding: 16px 12px;
-      overflow-y: auto;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-    .nav-item:hover {
-      background: rgba(14, 165, 233, 0.08);
-      color: var(--ink);
-    }
-    .nav-item.active {
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(14, 165, 233, 0.05));
-      color: var(--accent);
-      border: 1px solid rgba(14, 165, 233, 0.2);
-    }
-    .nav-item .icon {
-      width: 20px;
-      text-align: center;
-      font-size: 15px;
-    }
-    .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid var(--border);
-      font-size: 11px;
-      color: var(--muted);
-      text-align: center;
-    }
+        /* ── Layout ── */
+        .app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg2);
+        }
 
-    /* ── Main Content ── */
-    .main {
-      flex: 1;
-      margin-left: 220px;
-      padding: 24px 28px;
-      min-height: 100vh;
-    }
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 180px;
+            min-width: 180px;
+            background: var(--bg2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex-shrink: 0;
+        }
 
-    /* ── Header ── */
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-    .page-header h2 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    .page-header .actions {
-      display: flex;
-      gap: 10px;
-    }
+        .sidebar-brand {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    /* ── Buttons ── */
-    .btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg3);
-      color: var(--ink);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn:hover {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #0284c7);
-      border-color: transparent;
-      color: #fff;
-    }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-    }
-    .btn-danger {
-      background: linear-gradient(135deg, var(--accent2), #dc2626);
-      border-color: transparent;
-      color: #fff;
-    }
-    .btn-success {
-      background: linear-gradient(135deg, var(--accent3), #059669);
-      border-color: transparent;
-      color: #fff;
-    }
+        .sidebar-brand .logo {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--accent), #0284c7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+        }
+        .sidebar-brand h1 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
 
-    /* ── Stats Cards ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .stat-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-      backdrop-filter: blur(10px);
-    }
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--accent), transparent);
-    }
-    .stat-card.danger::before { background: linear-gradient(90deg, var(--accent2), transparent); }
-    .stat-card.success::before { background: linear-gradient(90deg, var(--accent3), transparent); }
-    .stat-card.warning::before { background: linear-gradient(90deg, var(--accent4), transparent); }
-    .stat-card .label {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    .stat-card .value {
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1;
-    }
-    .stat-card .change {
-      font-size: 12px;
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .stat-card .change.up { color: var(--accent3); }
-    .stat-card .change.down { color: var(--accent2); }
+        .sidebar-brand span {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 500;
+        }
 
-    /* ── Cards ── */
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      backdrop-filter: blur(10px);
-      margin-bottom: 20px;
-    }
-    .card-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-header h3 {
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .card-body {
-      padding: 20px;
-    }
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 8px;
+            overflow-y: auto;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
 
-    /* ── Tables ── */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .data-table thead th {
-      text-align: left;
-      padding: 12px 16px;
-      font-weight: 600;
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    .data-table tbody td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--ink);
-    }
-    .data-table tbody tr:hover {
-      background: rgba(14, 165, 233, 0.04);
-    }
-    .data-table tbody tr:last-child td {
-      border-bottom: none;
-    }
+        .nav-item:hover {
+            background: rgba(14, 165, 233, 0.08);
+            color: var(--ink);
+        }
 
-    /* ── Tags ── */
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .tag-blue { background: rgba(14, 165, 233, 0.15); color: var(--accent); }
-    .tag-red { background: rgba(239, 68, 68, 0.15); color: var(--accent2); }
-    .tag-green { background: rgba(16, 185, 129, 0.15); color: var(--accent3); }
-    .tag-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent4); }
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(14, 165, 233, 0.05));
+            color: var(--accent);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
 
-    /* ── Status Toggle ── */
-    .toggle {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: var(--bg3);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-      border: 1px solid var(--border);
-    }
-    .toggle.on {
-      background: linear-gradient(135deg, var(--accent3), #059669);
-      border-color: transparent;
-    }
-    .toggle::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 18px;
-      height: 18px;
-      background: #fff;
-      border-radius: 50%;
-      transition: all 0.3s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    .toggle.on::after {
-      left: 22px;
-    }
+        .nav-item .icon {
+            width: 20px;
+            text-align: center;
+            font-size: 15px;
+        }
 
-    /* ── Tabs ── */
-    .tabs {
-      display: flex;
-      gap: 4px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .tab {
-      padding: 10px 20px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--muted);
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .tab:hover { color: var(--ink); }
-    .tab.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-    }
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+        }
 
-    /* ── Form Elements ── */
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 6px;
-      color: var(--muted);
-    }
-    .form-control {
-      width: 100%;
-      padding: 10px 14px;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--ink);
-      font-size: 13px;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-    .form-control:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
-    }
-    textarea.form-control {
-      min-height: 120px;
-      resize: vertical;
-      font-family: "SF Mono", "Fira Code", monospace;
-      line-height: 1.6;
-    }
+        /* ── Main Content ── */
+        .main {
+            flex: 1;
+            padding: 16px 20px;
+            overflow-y: auto;
+            height: 100%;
+            min-width: 0;
+        }
 
-    /* ── Rule Editor ── */
-    .rule-editor {
-      display: grid;
-      grid-template-columns: 200px 1fr;
-      gap: 20px;
-      height: calc(100vh - 200px);
-    }
-    .rule-list {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .rule-list-item {
-      padding: 12px 16px;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .rule-list-item:hover {
-      background: rgba(14, 165, 233, 0.05);
-    }
-    .rule-list-item.active {
-      background: linear-gradient(90deg, rgba(14, 165, 233, 0.1), transparent);
-      color: var(--accent);
-      border-left: 3px solid var(--accent);
-    }
-    .rule-editor-main {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-    }
+        /* ── Header ── */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .page-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
 
-    /* ── Realtime Feed ── */
-    .realtime-feed {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .feed-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-    .feed-item:last-child { border-bottom: none; }
-    .feed-item .time {
-      font-size: 11px;
-      color: var(--muted);
-      min-width: 60px;
-      font-family: "SF Mono", monospace;
-    }
-    .feed-item .ip {
-      font-family: "SF Mono", monospace;
-      color: var(--accent);
-      min-width: 120px;
-    }
-    .feed-item .url {
-      color: var(--muted);
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .feed-item .status {
-      font-size: 11px;
-    }
+        .page-header .actions {
+            display: flex;
+            gap: 10px;
+        }
 
-    /* ── Charts ── */
-    .chart-container {
-      height: 260px;
-      position: relative;
-    }
+        /* ── Buttons ── */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-    /* ── Empty State ── */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--muted);
-    }
-    .empty-state .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
+        .btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
 
-    /* ── Modal ── */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s;
-    }
-    .modal-overlay.show {
-      opacity: 1;
-      visibility: visible;
-    }
-    .modal {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow: hidden;
-      transform: scale(0.95);
-      transition: all 0.3s;
-    }
-    .modal-overlay.show .modal {
-      transform: scale(1);
-    }
-    .modal-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .modal-header h3 { font-size: 16px; }
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .modal-body {
-      padding: 24px;
-      overflow-y: auto;
-      max-height: 60vh;
-    }
-    .modal-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #0284c7);
+            border-color: transparent;
+            color: #fff;
+        }
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+        }
 
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .main { margin-left: 0; padding: 16px; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .rule-editor { grid-template-columns: 1fr; }
-    }
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent2), #dc2626);
+            border-color: transparent;
+            color: #fff;
+        }
 
-    /* ── Animations ── */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in {
-      animation: fadeIn 0.4s ease-out;
-    }
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent3), #059669);
+            border-color: transparent;
+            color: #fff;
+        }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .pulse {
-      animation: pulse 2s ease-in-out infinite;
-    }
+        /* ── Stats Cards ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
 
-    /* ── Page Sections ── */
-    .page-section {
-      display: none;
-    }
-    .page-section.active {
-      display: block;
-      animation: fadeIn 0.3s ease-out;
-    }
-  </style>
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+        }
+
+        .stat-card.danger::before {
+            background: linear-gradient(90deg, var(--accent2), transparent);
+        }
+
+        .stat-card.success::before {
+            background: linear-gradient(90deg, var(--accent3), transparent);
+        }
+
+        .stat-card.warning::before {
+            background: linear-gradient(90deg, var(--accent4), transparent);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+
+        .stat-card .change {
+            font-size: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-card .change.up {
+            color: var(--accent3);
+        }
+
+        .stat-card .change.down {
+            color: var(--accent2);
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            margin-bottom: 16px;
+        }
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .card-body {
+            padding: 16px;
+        }
+
+        /* ── Tables ── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table thead th {
+            text-align: left;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .data-table tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--ink);
+            font-size: 12px;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(14, 165, 233, 0.04);
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ── Tags ── */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .tag-blue {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--accent);
+        }
+
+        .tag-red {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent2);
+        }
+
+        .tag-green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent3);
+        }
+
+        .tag-amber {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent4);
+        }
+
+        /* ── Status Toggle ── */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--bg3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--border);
+        }
+
+        .toggle.on {
+            background: linear-gradient(135deg, var(--accent3), #059669);
+            border-color: transparent;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.on::after {
+            left: 22px;
+        }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--ink);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* ── Form Elements ── */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--muted);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--ink);
+            font-size: 13px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+            font-family: "SF Mono", "Fira Code", monospace;
+            line-height: 1.6;
+        }
+
+        /* ── Rule Editor ── */
+        .rule-editor {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 12px;
+            height: calc(100% - 80px);
+            min-height: 400px;
+        }
+
+        .rule-list {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .rule-list-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rule-list-item:hover {
+            background: rgba(14, 165, 233, 0.05);
+        }
+
+        .rule-list-item.active {
+            background: linear-gradient(90deg, rgba(14, 165, 233, 0.1), transparent);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+
+        .rule-editor-main {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Realtime Feed ── */
+        .realtime-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .feed-item:last-child {
+            border-bottom: none;
+        }
+
+        .feed-item .time {
+            font-size: 11px;
+            color: var(--muted);
+            min-width: 60px;
+            font-family: "SF Mono", monospace;
+        }
+
+        .feed-item .ip {
+            font-family: "SF Mono", monospace;
+            color: var(--accent);
+            min-width: 120px;
+        }
+
+        .feed-item .url {
+            color: var(--muted);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .feed-item .status {
+            font-size: 11px;
+        }
+
+        /* ── Charts ── */
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+
+        /* ── Empty State ── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--muted);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .rule-editor {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 宝塔弹窗内自适应 */
+        .layui-layer-content {
+            overflow: hidden !important;
+            height: 100% !important;
+        }
+        .layui-layer-content > * {
+            height: 100%;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* ── Page Sections ── */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
 </head>
 <body>
 
 <div class="app">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="logo">&#128737;</div>
-      <div>
-        <h1>BT-WAF</h1>
-        <span>网站防火墙</span>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-item active" data-page="dashboard">
-        <span class="icon">&#127968;</span> 概览
-      </div>
-      <div class="nav-item" data-page="sites">
-        <span class="icon">&#127760;</span> 站点管理
-      </div>
-      <div class="nav-item" data-page="rules">
-        <span class="icon">&#128272;</span> 规则配置
-      </div>
-      <div class="nav-item" data-page="ips">
-        <span class="icon">&#128372;</span> IP 黑白名单
-      </div>
-      <div class="nav-item" data-page="logs">
-        <span class="icon">&#128220;</span> 拦截日志
-      </div>
-      <div class="nav-item" data-page="realtime">
-        <span class="icon">&#128250;</span> 实时监控
-      </div>
-      <div class="nav-item" data-page="settings">
-        <span class="icon">&#9881;</span> 系统设置
-      </div>
-    </nav>
-    <div class="sidebar-footer">
-      BT-WAF v1.0.0<br>基于 ngx_lua_waf
-    </div>
-  </aside>
-
-  <!-- Main Content -->
-  <main class="main">
-
-    <!-- ========== DASHBOARD ========== -->
-    <section class="page-section active" id="page-dashboard">
-      <div class="page-header">
-        <h2>安全概览</h2>
-        <div class="actions">
-          <button class="btn" onclick="refreshStats()">&#128260; 刷新</button>
-        </div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="label">今日拦截</div>
-          <div class="value" id="stat-blocked">0</div>
-          <div class="change up">&#9650; 实时保护中</div>
-        </div>
-        <div class="stat-card danger">
-          <div class="label">CC 拦截</div>
-          <div class="value" id="stat-cc">0</div>
-          <div class="change">频率攻击</div>
-        </div>
-        <div class="stat-card success">
-          <div class="label">正常访问</div>
-          <div class="value" id="stat-access">0</div>
-          <div class="change up">安全流量</div>
-        </div>
-        <div class="stat-card warning">
-          <div class="label">独立 IP</div>
-          <div class="value" id="stat-ips">0</div>
-          <div class="change">今日访客</div>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-        <div class="card">
-          <div class="card-header">
-            <h3>7 天拦截趋势</h3>
-          </div>
-          <div class="card-body">
-            <div class="chart-container" id="trend-chart"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>攻击类型分布</h3>
-          </div>
-          <div class="card-body">
-            <div class="chart-container" id="attack-type-chart"></div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-        <div class="card">
-          <div class="card-header">
-            <h3>TOP 攻击 IP</h3>
-          </div>
-          <div class="card-body">
-            <table class="data-table" id="top-ip-table">
-              <thead>
-              <tr><th>IP 地址</th><th>拦截次数</th><th>操作</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>TOP 被攻击站点</h3>
-          </div>
-          <div class="card-body">
-            <table class="data-table" id="top-site-table">
-              <thead>
-              <tr><th>站点</th><th>拦截</th><th>访问</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== SITES ========== -->
-    <section class="page-section" id="page-sites">
-      <div class="page-header">
-        <h2>站点管理</h2>
-        <div class="actions">
-          <button class="btn" onclick="loadSites()">&#128260; 刷新</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-body">
-          <table class="data-table" id="sites-table">
-            <thead>
-            <tr>
-              <th>站点名称</th>
-              <th>WAF 状态</th>
-              <th>CC 防御</th>
-              <th>规则配置</th>
-              <th>操作</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== RULES ========== -->
-    <section class="page-section" id="page-rules">
-      <div class="page-header">
-        <h2>规则配置</h2>
-        <div class="actions">
-          <button class="btn btn-success" onclick="saveRules()">&#128190; 保存规则</button>
-        </div>
-      </div>
-      <div class="rule-editor">
-        <div class="rule-list">
-          <div class="rule-list-item active" data-rule="args">
-            <span>GET 参数过滤 (args)</span>
-            <span class="tag tag-blue">核心</span>
-          </div>
-          <div class="rule-list-item" data-rule="url">
-            <span>URL 过滤 (url)</span>
-            <span class="tag tag-blue">核心</span>
-          </div>
-          <div class="rule-list-item" data-rule="post">
-            <span>POST 过滤 (post)</span>
-            <span class="tag tag-blue">核心</span>
-          </div>
-          <div class="rule-list-item" data-rule="cookie">
-            <span>Cookie 过滤 (cookie)</span>
-            <span class="tag tag-amber">可选</span>
-          </div>
-          <div class="rule-list-item" data-rule="user-agent">
-            <span>UA 过滤 (user-agent)</span>
-            <span class="tag tag-blue">核心</span>
-          </div>
-          <div class="rule-list-item" data-rule="whiteurl">
-            <span>URL 白名单 (whiteurl)</span>
-            <span class="tag tag-green">白名单</span>
-          </div>
-        </div>
-        <div class="rule-editor-main">
-          <div style="margin-bottom: 12px;">
-            <h3 id="current-rule-name">GET 参数过滤规则</h3>
-            <p style="font-size: 12px; color: var(--muted); margin-top: 4px;">每行一条规则，支持正则表达式</p>
-          </div>
-          <textarea class="form-control" id="rule-textarea" style="flex: 1;"></textarea>
-          <div style="margin-top: 12px; display: flex; gap: 10px;">
-            <button class="btn" onclick="addRuleLine()">+ 添加示例规则</button>
-            <button class="btn btn-danger" onclick="clearRules()">清空</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== IPS ========== -->
-    <section class="page-section" id="page-ips">
-      <div class="page-header">
-        <h2>IP 黑白名单</h2>
-      </div>
-      <div class="tabs">
-        <div class="tab active" data-tab="blacklist">黑名单</div>
-        <div class="tab" data-tab="whitelist">白名单</div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h3 id="ip-list-title">IP 黑名单</h3>
-          <button class="btn btn-primary" onclick="showAddIpModal()">+ 添加 IP</button>
-        </div>
-        <div class="card-body">
-          <table class="data-table" id="ip-table">
-            <thead>
-            <tr><th>IP 地址</th><th>原因</th><th>添加时间</th><th>操作</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== LOGS ========== -->
-    <section class="page-section" id="page-logs">
-      <div class="page-header">
-        <h2>拦截日志</h2>
-        <div class="actions">
-          <select class="form-control" id="log-site-filter" style="width: 150px;" onchange="loadLogs()">
-            <option value="">所有站点</option>
-          </select>
-          <button class="btn" onclick="loadLogs()">&#128260; 刷新</button>
-          <button class="btn btn-danger" onclick="clearLogs()">&#128465; 清理</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-body">
-          <table class="data-table" id="logs-table">
-            <thead>
-            <tr>
-              <th>时间</th>
-              <th>IP</th>
-              <th>站点</th>
-              <th>类型</th>
-              <th>URL</th>
-              <th>规则</th>
-              <th>操作</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== REALTIME ========== -->
-    <section class="page-section" id="page-realtime">
-      <div class="page-header">
-        <h2>实时监控</h2>
-        <div class="actions">
-          <div class="toggle on" id="realtime-toggle" onclick="toggleRealtime()"></div>
-          <span style="color: var(--muted); font-size: 13px;">自动刷新</span>
-        </div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div class="card">
-          <div class="card-header">
-            <h3>&#128308; 实时拦截</h3>
-          </div>
-          <div class="card-body">
-            <div class="realtime-feed" id="realtime-blocked"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>&#128994; 实时访问</h3>
-          </div>
-          <div class="card-body">
-            <div class="realtime-feed" id="realtime-access"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== SETTINGS ========== -->
-    <section class="page-section" id="page-settings">
-      <div class="page-header">
-        <h2>系统设置</h2>
-      </div>
-      <div class="card">
-        <div class="card-body">
-          <div class="form-group">
-            <label>日志保留天数</label>
-            <input type="number" class="form-control" id="log-retention" value="7" min="1" max="90">
-          </div>
-          <div class="form-group">
-            <label>CC 防御默认阈值</label>
-            <div style="display: flex; gap: 10px;">
-              <input type="number" class="form-control" id="cc-count" value="100" placeholder="请求次数" style="flex: 1;">
-              <span style="color: var(--muted); padding: 10px 0;">/</span>
-              <input type="number" class="form-control" id="cc-seconds" value="60" placeholder="时间(秒)" style="flex: 1;">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo">&#128737;</div>
+            <div>
+                <h1>BT-WAF</h1>
+                <span>网站防火墙</span>
             </div>
-          </div>
-          <div class="form-group">
-            <label>拦截页面内容</label>
-            <textarea class="form-control" id="block-html" rows="6">默认拦截页面</textarea>
-          </div>
-          <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
         </div>
-      </div>
-    </section>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-page="dashboard">
+                <span class="icon">&#127968;</span> 概览
+            </div>
+            <div class="nav-item" data-page="sites">
+                <span class="icon">&#127760;</span> 站点管理
+            </div>
+            <div class="nav-item" data-page="rules">
+                <span class="icon">&#128272;</span> 规则配置
+            </div>
+            <div class="nav-item" data-page="ips">
+                <span class="icon">&#128372;</span> IP 黑白名单
+            </div>
+            <div class="nav-item" data-page="logs">
+                <span class="icon">&#128220;</span> 拦截日志
+            </div>
+            <div class="nav-item" data-page="realtime">
+                <span class="icon">&#128250;</span> 实时监控
+            </div>
+            <div class="nav-item" data-page="settings">
+                <span class="icon">&#9881;</span> 系统设置
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            BT-WAF v1.0.0<br>基于 ngx_lua_waf
+        </div>
+    </aside>
 
-  </main>
+    <!-- Main Content -->
+    <main class="main">
+
+        <!-- ========== DASHBOARD ========== -->
+        <section class="page-section active" id="page-dashboard">
+            <div class="page-header">
+                <h2>安全概览</h2>
+                <div class="actions">
+                    <button class="btn" onclick="refreshStats()">&#128260; 刷新</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">今日拦截</div>
+                    <div class="value" id="stat-blocked">0</div>
+                    <div class="change up">&#9650; 实时保护中</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="label">CC 拦截</div>
+                    <div class="value" id="stat-cc">0</div>
+                    <div class="change">频率攻击</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="label">正常访问</div>
+                    <div class="value" id="stat-access">0</div>
+                    <div class="change up">安全流量</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="label">独立 IP</div>
+                    <div class="value" id="stat-ips">0</div>
+                    <div class="change">今日访客</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>7 天拦截趋势</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="trend-chart"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>攻击类型分布</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="attack-type-chart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>TOP 攻击 IP</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table" id="top-ip-table">
+                            <thead>
+                            <tr>
+                                <th>IP 地址</th>
+                                <th>拦截次数</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>TOP 被攻击站点</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table" id="top-site-table">
+                            <thead>
+                            <tr>
+                                <th>站点</th>
+                                <th>拦截</th>
+                                <th>访问</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== SITES ========== -->
+        <section class="page-section" id="page-sites">
+            <div class="page-header">
+                <h2>站点管理</h2>
+                <div class="actions">
+                    <button class="btn" onclick="loadSites()">&#128260; 刷新</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table" id="sites-table">
+                        <thead>
+                        <tr>
+                            <th>站点名称</th>
+                            <th>WAF 状态</th>
+                            <th>CC 防御</th>
+                            <th>规则配置</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== RULES ========== -->
+        <section class="page-section" id="page-rules">
+            <div class="page-header">
+                <h2>规则配置</h2>
+                <div class="actions">
+                    <button class="btn btn-success" onclick="saveRules()">&#128190; 保存规则</button>
+                </div>
+            </div>
+            <div class="rule-editor">
+                <div class="rule-list">
+                    <div class="rule-list-item active" data-rule="args">
+                        <span>GET 参数过滤 (args)</span>
+                        <span class="tag tag-blue">核心</span>
+                    </div>
+                    <div class="rule-list-item" data-rule="url">
+                        <span>URL 过滤 (url)</span>
+                        <span class="tag tag-blue">核心</span>
+                    </div>
+                    <div class="rule-list-item" data-rule="post">
+                        <span>POST 过滤 (post)</span>
+                        <span class="tag tag-blue">核心</span>
+                    </div>
+                    <div class="rule-list-item" data-rule="cookie">
+                        <span>Cookie 过滤 (cookie)</span>
+                        <span class="tag tag-amber">可选</span>
+                    </div>
+                    <div class="rule-list-item" data-rule="user-agent">
+                        <span>UA 过滤 (user-agent)</span>
+                        <span class="tag tag-blue">核心</span>
+                    </div>
+                    <div class="rule-list-item" data-rule="whiteurl">
+                        <span>URL 白名单 (whiteurl)</span>
+                        <span class="tag tag-green">白名单</span>
+                    </div>
+                </div>
+                <div class="rule-editor-main">
+                    <div style="margin-bottom: 12px;">
+                        <h3 id="current-rule-name">GET 参数过滤规则</h3>
+                        <p style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+                            每行一条规则，支持正则表达式</p>
+                    </div>
+                    <textarea class="form-control" id="rule-textarea" style="flex: 1;"></textarea>
+                    <div style="margin-top: 12px; display: flex; gap: 10px;">
+                        <button class="btn" onclick="addRuleLine()">+ 添加示例规则</button>
+                        <button class="btn btn-danger" onclick="clearRules()">清空</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== IPS ========== -->
+        <section class="page-section" id="page-ips">
+            <div class="page-header">
+                <h2>IP 黑白名单</h2>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="blacklist">黑名单</div>
+                <div class="tab" data-tab="whitelist">白名单</div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 id="ip-list-title">IP 黑名单</h3>
+                    <button class="btn btn-primary" onclick="showAddIpModal()">+ 添加 IP</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table" id="ip-table">
+                        <thead>
+                        <tr>
+                            <th>IP 地址</th>
+                            <th>原因</th>
+                            <th>添加时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== LOGS ========== -->
+        <section class="page-section" id="page-logs">
+            <div class="page-header">
+                <h2>拦截日志</h2>
+                <div class="actions">
+                    <select class="form-control" id="log-site-filter" style="width: 150px;" onchange="loadLogs()">
+                        <option value="">所有站点</option>
+                    </select>
+                    <button class="btn" onclick="loadLogs()">&#128260; 刷新</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">&#128465; 清理</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <table class="data-table" id="logs-table">
+                        <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>IP</th>
+                            <th>站点</th>
+                            <th>类型</th>
+                            <th>URL</th>
+                            <th>规则</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== REALTIME ========== -->
+        <section class="page-section" id="page-realtime">
+            <div class="page-header">
+                <h2>实时监控</h2>
+                <div class="actions">
+                    <div class="toggle on" id="realtime-toggle" onclick="toggleRealtime()"></div>
+                    <span style="color: var(--muted); font-size: 13px;">自动刷新</span>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>&#128308; 实时拦截</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="realtime-feed" id="realtime-blocked"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>&#128994; 实时访问</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="realtime-feed" id="realtime-access"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== SETTINGS ========== -->
+        <section class="page-section" id="page-settings">
+            <div class="page-header">
+                <h2>系统设置</h2>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>日志保留天数</label>
+                        <input type="number" class="form-control" id="log-retention" value="7" min="1" max="90">
+                    </div>
+                    <div class="form-group">
+                        <label>CC 防御默认阈值</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" class="form-control" id="cc-count" value="100" placeholder="请求次数"
+                                   style="flex: 1;">
+                            <span style="color: var(--muted); padding: 10px 0;">/</span>
+                            <input type="number" class="form-control" id="cc-seconds" value="60" placeholder="时间(秒)"
+                                   style="flex: 1;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>拦截页面内容</label>
+                        <textarea class="form-control" id="block-html" rows="6">默认拦截页面</textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
 </div>
 
 <!-- Add IP Modal -->
 <div class="modal-overlay" id="add-ip-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>添加 IP</h3>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal">
+        <div class="modal-header">
+            <h3>添加 IP</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>IP 地址</label>
+                <input type="text" class="form-control" id="new-ip" placeholder="192.168.1.1 或 192.168.1.0/24">
+            </div>
+            <div class="form-group">
+                <label>原因（可选）</label>
+                <input type="text" class="form-control" id="new-ip-reason" placeholder="恶意攻击">
+            </div>
+            <div class="form-group" id="expire-group">
+                <label>过期时间（可选）</label>
+                <input type="datetime-local" class="form-control" id="new-ip-expire">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="addIp()">确认添加</button>
+        </div>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>IP 地址</label>
-        <input type="text" class="form-control" id="new-ip" placeholder="192.168.1.1 或 192.168.1.0/24">
-      </div>
-      <div class="form-group">
-        <label>原因（可选）</label>
-        <input type="text" class="form-control" id="new-ip-reason" placeholder="恶意攻击">
-      </div>
-      <div class="form-group" id="expire-group">
-        <label>过期时间（可选）</label>
-        <input type="datetime-local" class="form-control" id="new-ip-expire">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="addIp()">确认添加</button>
-    </div>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>
-  // ==================== Global State ====================
-  let currentPage = 'dashboard';
-  let currentRule = 'args';
-  let currentIpTab = 'blacklist';
-  let realtimeEnabled = true;
-  let realtimeTimer = null;
-  let lastLogTime = '';
+    // ==================== Global State ====================
+    let currentPage = 'dashboard';
+    let currentRule = 'args';
+    let currentIpTab = 'blacklist';
+    let realtimeEnabled = true;
+    let realtimeTimer = null;
+    let lastLogTime = '';
 
-  // ==================== Navigation ====================
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      const page = item.dataset.page;
-      showPage(page);
+    // ==================== Navigation ====================
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            const page = item.dataset.page;
+            showPage(page);
+        });
     });
-  });
 
-  function showPage(page) {
-    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`page-${page}`).classList.add('active');
-    currentPage = page;
+    function showPage(page) {
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`page-${page}`).classList.add('active');
+        currentPage = page;
 
-    if (page === 'dashboard') refreshStats();
-    if (page === 'sites') loadSites();
-    if (page === 'rules') loadRules(currentRule);
-    if (page === 'ips') loadIpList();
-    if (page === 'logs') loadLogs();
-    if (page === 'realtime') startRealtime();
-  }
+        if (page === 'dashboard') refreshStats();
+        if (page === 'sites') loadSites();
+        if (page === 'rules') loadRules(currentRule);
+        if (page === 'ips') loadIpList();
+        if (page === 'logs') loadLogs();
+        if (page === 'realtime') startRealtime();
+    }
 
-  // ==================== Dashboard ====================
-  function refreshStats() {
-    // 模拟数据 - 实际应调用后端API
-    const mockData = {
-      total_blocked: 156,
-      total_access: 3421,
-      cc_blocked: 23,
-      unique_ips: 89,
-      trend: [
-        {date: '06-12', blocked: 45, access: 2800},
-        {date: '06-13', blocked: 32, access: 3100},
-        {date: '06-14', blocked: 67, access: 2900},
-        {date: '06-15', blocked: 23, access: 3500},
-        {date: '06-16', blocked: 89, access: 3200},
-        {date: '06-17', blocked: 45, access: 3400},
-        {date: '06-18', blocked: 156, access: 3421}
-      ],
-      attack_types: {
-        'args_attack': 45,
-        'url_attack': 32,
-        'ua_attack': 28,
-        'post_attack': 21,
-        'cc_attack': 23,
-        'cookie_attack': 7
-      },
-      top_ips: [
-        {ip: '192.168.1.100', count: 45},
-        {ip: '10.0.0.50', count: 32},
-        {ip: '172.16.0.1', count: 28}
-      ],
-      top_sites: [
-        {site: 'example.com', blocked: 89, access: 1200},
-        {site: 'test.com', blocked: 45, access: 800}
-      ]
-    };
-
-    document.getElementById('stat-blocked').textContent = mockData.total_blocked;
-    document.getElementById('stat-cc').textContent = mockData.cc_blocked;
-    document.getElementById('stat-access').textContent = mockData.total_access;
-    document.getElementById('stat-ips').textContent = mockData.unique_ips;
-
-    renderTrendChart(mockData.trend);
-    renderAttackTypeChart(mockData.attack_types);
-    renderTopIpTable(mockData.top_ips);
-    renderTopSiteTable(mockData.top_sites);
-  }
-
-  function renderTrendChart(data) {
-    const chart = echarts.init(document.getElementById('trend-chart'));
-    chart.setOption({
-      tooltip: { trigger: 'axis' },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: data.map(d => d.date),
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8' }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8' },
-        splitLine: { lineStyle: { color: '#1e293b' } }
-      },
-      series: [{
-        name: '拦截次数',
-        type: 'line',
-        data: data.map(d => d.blocked),
-        smooth: true,
-        areaStyle: {
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(239, 68, 68, 0.3)' },
-              { offset: 1, color: 'rgba(239, 68, 68, 0)' }
+    // ==================== Dashboard ====================
+    function refreshStats() {
+        // 模拟数据 - 实际应调用后端API
+        const mockData = {
+            total_blocked: 156,
+            total_access: 3421,
+            cc_blocked: 23,
+            unique_ips: 89,
+            trend: [
+                {date: '06-12', blocked: 45, access: 2800},
+                {date: '06-13', blocked: 32, access: 3100},
+                {date: '06-14', blocked: 67, access: 2900},
+                {date: '06-15', blocked: 23, access: 3500},
+                {date: '06-16', blocked: 89, access: 3200},
+                {date: '06-17', blocked: 45, access: 3400},
+                {date: '06-18', blocked: 156, access: 3421}
+            ],
+            attack_types: {
+                'args_attack': 45,
+                'url_attack': 32,
+                'ua_attack': 28,
+                'post_attack': 21,
+                'cc_attack': 23,
+                'cookie_attack': 7
+            },
+            top_ips: [
+                {ip: '192.168.1.100', count: 45},
+                {ip: '10.0.0.50', count: 32},
+                {ip: '172.16.0.1', count: 28}
+            ],
+            top_sites: [
+                {site: 'example.com', blocked: 89, access: 1200},
+                {site: 'test.com', blocked: 45, access: 800}
             ]
-          }
-        },
-        lineStyle: { color: '#ef4444', width: 2 },
-        itemStyle: { color: '#ef4444' }
-      }]
-    });
-  }
+        };
 
-  function renderAttackTypeChart(data) {
-    const chart = echarts.init(document.getElementById('attack-type-chart'));
-    const entries = Object.entries(data);
-    chart.setOption({
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 6, borderColor: '#0b1120', borderWidth: 2 },
-        label: { show: false },
-        emphasis: { label: { show: true, fontSize: 14, color: '#f1f5f9' } },
-        data: entries.map(([name, value]) => ({
-          name: name.replace('_attack', ''),
-          value
-        }))
-      }],
-      color: ['#ef4444', '#f59e0b', '#0ea5e9', '#10b981', '#8b5cf6', '#ec4899']
-    });
-  }
+        document.getElementById('stat-blocked').textContent = mockData.total_blocked;
+        document.getElementById('stat-cc').textContent = mockData.cc_blocked;
+        document.getElementById('stat-access').textContent = mockData.total_access;
+        document.getElementById('stat-ips').textContent = mockData.unique_ips;
 
-  function renderTopIpTable(ips) {
-    const tbody = document.querySelector('#top-ip-table tbody');
-    tbody.innerHTML = ips.map(ip => `
+        renderTrendChart(mockData.trend);
+        renderAttackTypeChart(mockData.attack_types);
+        renderTopIpTable(mockData.top_ips);
+        renderTopSiteTable(mockData.top_sites);
+    }
+
+    function renderTrendChart(data) {
+        const chart = echarts.init(document.getElementById('trend-chart'));
+        chart.setOption({
+            tooltip: {trigger: 'axis'},
+            grid: {left: '3%', right: '4%', bottom: '3%', containLabel: true},
+            xAxis: {
+                type: 'category',
+                data: data.map(d => d.date),
+                axisLine: {lineStyle: {color: '#334155'}},
+                axisLabel: {color: '#94a3b8'}
+            },
+            yAxis: {
+                type: 'value',
+                axisLine: {lineStyle: {color: '#334155'}},
+                axisLabel: {color: '#94a3b8'},
+                splitLine: {lineStyle: {color: '#1e293b'}}
+            },
+            series: [{
+                name: '拦截次数',
+                type: 'line',
+                data: data.map(d => d.blocked),
+                smooth: true,
+                areaStyle: {
+                    color: {
+                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                            {offset: 0, color: 'rgba(239, 68, 68, 0.3)'},
+                            {offset: 1, color: 'rgba(239, 68, 68, 0)'}
+                        ]
+                    }
+                },
+                lineStyle: {color: '#ef4444', width: 2},
+                itemStyle: {color: '#ef4444'}
+            }]
+        });
+    }
+
+    function renderAttackTypeChart(data) {
+        const chart = echarts.init(document.getElementById('attack-type-chart'));
+        const entries = Object.entries(data);
+        chart.setOption({
+            tooltip: {trigger: 'item'},
+            series: [{
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: {borderRadius: 6, borderColor: '#0b1120', borderWidth: 2},
+                label: {show: false},
+                emphasis: {label: {show: true, fontSize: 14, color: '#f1f5f9'}},
+                data: entries.map(([name, value]) => ({
+                    name: name.replace('_attack', ''),
+                    value
+                }))
+            }],
+            color: ['#ef4444', '#f59e0b', '#0ea5e9', '#10b981', '#8b5cf6', '#ec4899']
+        });
+    }
+
+    function renderTopIpTable(ips) {
+        const tbody = document.querySelector('#top-ip-table tbody');
+        tbody.innerHTML = ips.map(ip => `
     <tr>
       <td><code style="color: var(--accent); font-family: monospace;">${ip.ip}</code></td>
       <td>${ip.count}</td>
       <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">拉黑</button></td>
     </tr>
   `).join('');
-  }
+    }
 
-  function renderTopSiteTable(sites) {
-    const tbody = document.querySelector('#top-site-table tbody');
-    tbody.innerHTML = sites.map(site => `
+    function renderTopSiteTable(sites) {
+        const tbody = document.querySelector('#top-site-table tbody');
+        tbody.innerHTML = sites.map(site => `
     <tr>
       <td>${site.site}</td>
       <td><span class="tag tag-red">${site.blocked}</span></td>
       <td>${site.access}</td>
     </tr>
   `).join('');
-  }
+    }
 
-  // ==================== Sites ====================
-  function loadSites() {
-    const mockSites = [
-      { name: 'example.com', waf_enabled: true, cc_enabled: true, rules: {args: true, url: true, post: true} },
-      { name: 'test.com', waf_enabled: true, cc_enabled: false, rules: {args: true, url: true, post: false} }
-    ];
+    // ==================== Sites ====================
+    function loadSites() {
+        const mockSites = [
+            {name: 'example.com', waf_enabled: true, cc_enabled: true, rules: {args: true, url: true, post: true}},
+            {name: 'test.com', waf_enabled: true, cc_enabled: false, rules: {args: true, url: true, post: false}}
+        ];
 
-    const tbody = document.querySelector('#sites-table tbody');
-    tbody.innerHTML = mockSites.map(site => `
+        const tbody = document.querySelector('#sites-table tbody');
+        tbody.innerHTML = mockSites.map(site => `
     <tr>
       <td><strong>${site.name}</strong></td>
       <td><div class="toggle ${site.waf_enabled ? 'on' : ''}" onclick="toggleSiteWaf('${site.name}')"></div></td>
@@ -1104,97 +1281,97 @@
       </td>
     </tr>
   `).join('');
-  }
-
-  function toggleSiteWaf(name) {
-    alert('切换站点 ' + name + ' 的WAF状态');
-  }
-
-  function toggleSiteCc(name) {
-    alert('切换站点 ' + name + ' 的CC防御');
-  }
-
-  // ==================== Rules ====================
-  document.querySelectorAll('.rule-list-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.rule-list-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      currentRule = item.dataset.rule;
-      loadRules(currentRule);
-    });
-  });
-
-  function loadRules(ruleType) {
-    const ruleNames = {
-      'args': 'GET 参数过滤规则',
-      'url': 'URL 过滤规则',
-      'post': 'POST 请求过滤规则',
-      'cookie': 'Cookie 过滤规则',
-      'user-agent': 'User-Agent 过滤规则',
-      'whiteurl': 'URL 白名单规则'
-    };
-    document.getElementById('current-rule-name').textContent = ruleNames[ruleType] || ruleType;
-
-    // 模拟规则内容
-    const mockRules = {
-      'args': '\\.(bak|inc|old|mdb|sql|backup)$\n(vhost|bbs|host|wwwroot).*(\\.|\\/)\n\\.(git|svn|hg)',
-      'url': '\\.(bak|inc|old|mdb|sql)$\n(vhost|bbs|host).*(\\.|\\/)',
-      'post': 'basename|phpinfo|eval|assert|exec|system\npassthru|shell_exec|popen|proc_open',
-      'cookie': 'eval\\(|assert\\(|\\+\\+|\\-\\-',
-      'user-agent': '(HTTrack|harvest|audit|dirbuster|pangolin|nmap|sqln)',
-      'whiteurl': ''
-    };
-
-    document.getElementById('rule-textarea').value = mockRules[ruleType] || '';
-  }
-
-  function saveRules() {
-    const rules = document.getElementById('rule-textarea').value;
-    alert('保存 ' + currentRule + ' 规则:\n' + rules.substring(0, 100) + '...');
-  }
-
-  function addRuleLine() {
-    const textarea = document.getElementById('rule-textarea');
-    const examples = {
-      'args': '\\.(bak|inc|old)$',
-      'url': '\\.(git|svn)$',
-      'post': 'eval\\(|assert\\(',
-      'cookie': 'base64_decode',
-      'user-agent': '(sqlmap|nmap)',
-      'whiteurl': '^/api/health$'
-    };
-    textarea.value += (textarea.value ? '\n' : '') + examples[currentRule];
-  }
-
-  function clearRules() {
-    if (confirm('确定清空当前规则吗？')) {
-      document.getElementById('rule-textarea').value = '';
     }
-  }
 
-  // ==================== IPs ====================
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentIpTab = tab.dataset.tab;
-      document.getElementById('ip-list-title').textContent = currentIpTab === 'blacklist' ? 'IP 黑名单' : 'IP 白名单';
-      document.getElementById('expire-group').style.display = currentIpTab === 'blacklist' ? 'block' : 'none';
-      loadIpList();
+    function toggleSiteWaf(name) {
+        alert('切换站点 ' + name + ' 的WAF状态');
+    }
+
+    function toggleSiteCc(name) {
+        alert('切换站点 ' + name + ' 的CC防御');
+    }
+
+    // ==================== Rules ====================
+    document.querySelectorAll('.rule-list-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.rule-list-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            currentRule = item.dataset.rule;
+            loadRules(currentRule);
+        });
     });
-  });
 
-  function loadIpList() {
-    const mockIps = currentIpTab === 'blacklist' ? [
-      {ip: '192.168.1.100', reason: 'CC攻击', created_at: '2026-06-18 10:30'},
-      {ip: '10.0.0.50', reason: 'SQL注入', created_at: '2026-06-18 09:15'}
-    ] : [
-      {ip: '127.0.0.1', reason: '本地访问', created_at: '2026-06-01'},
-      {ip: '192.168.1.1', reason: '内网访问', created_at: '2026-06-01'}
-    ];
+    function loadRules(ruleType) {
+        const ruleNames = {
+            'args': 'GET 参数过滤规则',
+            'url': 'URL 过滤规则',
+            'post': 'POST 请求过滤规则',
+            'cookie': 'Cookie 过滤规则',
+            'user-agent': 'User-Agent 过滤规则',
+            'whiteurl': 'URL 白名单规则'
+        };
+        document.getElementById('current-rule-name').textContent = ruleNames[ruleType] || ruleType;
 
-    const tbody = document.querySelector('#ip-table tbody');
-    tbody.innerHTML = mockIps.map(ip => `
+        // 模拟规则内容
+        const mockRules = {
+            'args': '\\.(bak|inc|old|mdb|sql|backup)$\n(vhost|bbs|host|wwwroot).*(\\.|\\/)\n\\.(git|svn|hg)',
+            'url': '\\.(bak|inc|old|mdb|sql)$\n(vhost|bbs|host).*(\\.|\\/)',
+            'post': 'basename|phpinfo|eval|assert|exec|system\npassthru|shell_exec|popen|proc_open',
+            'cookie': 'eval\\(|assert\\(|\\+\\+|\\-\\-',
+            'user-agent': '(HTTrack|harvest|audit|dirbuster|pangolin|nmap|sqln)',
+            'whiteurl': ''
+        };
+
+        document.getElementById('rule-textarea').value = mockRules[ruleType] || '';
+    }
+
+    function saveRules() {
+        const rules = document.getElementById('rule-textarea').value;
+        alert('保存 ' + currentRule + ' 规则:\n' + rules.substring(0, 100) + '...');
+    }
+
+    function addRuleLine() {
+        const textarea = document.getElementById('rule-textarea');
+        const examples = {
+            'args': '\\.(bak|inc|old)$',
+            'url': '\\.(git|svn)$',
+            'post': 'eval\\(|assert\\(',
+            'cookie': 'base64_decode',
+            'user-agent': '(sqlmap|nmap)',
+            'whiteurl': '^/api/health$'
+        };
+        textarea.value += (textarea.value ? '\n' : '') + examples[currentRule];
+    }
+
+    function clearRules() {
+        if (confirm('确定清空当前规则吗？')) {
+            document.getElementById('rule-textarea').value = '';
+        }
+    }
+
+    // ==================== IPs ====================
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentIpTab = tab.dataset.tab;
+            document.getElementById('ip-list-title').textContent = currentIpTab === 'blacklist' ? 'IP 黑名单' : 'IP 白名单';
+            document.getElementById('expire-group').style.display = currentIpTab === 'blacklist' ? 'block' : 'none';
+            loadIpList();
+        });
+    });
+
+    function loadIpList() {
+        const mockIps = currentIpTab === 'blacklist' ? [
+            {ip: '192.168.1.100', reason: 'CC攻击', created_at: '2026-06-18 10:30'},
+            {ip: '10.0.0.50', reason: 'SQL注入', created_at: '2026-06-18 09:15'}
+        ] : [
+            {ip: '127.0.0.1', reason: '本地访问', created_at: '2026-06-01'},
+            {ip: '192.168.1.1', reason: '内网访问', created_at: '2026-06-01'}
+        ];
+
+        const tbody = document.querySelector('#ip-table tbody');
+        tbody.innerHTML = mockIps.map(ip => `
     <tr>
       <td><code style="color: var(--accent); font-family: monospace;">${ip.ip}</code></td>
       <td>${ip.reason || '-'}</td>
@@ -1202,37 +1379,58 @@
       <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">删除</button></td>
     </tr>
   `).join('');
-  }
-
-  function showAddIpModal() {
-    document.getElementById('add-ip-modal').classList.add('show');
-  }
-
-  function closeModal() {
-    document.getElementById('add-ip-modal').classList.remove('show');
-  }
-
-  function addIp() {
-    const ip = document.getElementById('new-ip').value;
-    if (!ip) {
-      alert('请输入IP地址');
-      return;
     }
-    alert(`添加 ${ip} 到${currentIpTab === 'blacklist' ? '黑名单' : '白名单'}`);
-    closeModal();
-    loadIpList();
-  }
 
-  // ==================== Logs ====================
-  function loadLogs() {
-    const mockLogs = [
-      {time: '2026-06-18 10:30:15', ip: '192.168.1.100', server: 'example.com', type: 'args_attack', url: '/test.php?id=1\' or \'1\'=\'1', rule: 'eval\\('},
-      {time: '2026-06-18 10:28:32', ip: '10.0.0.50', server: 'test.com', type: 'cc_attack', url: '/api/data', rule: '100/60'},
-      {time: '2026-06-18 10:25:08', ip: '172.16.0.1', server: 'example.com', type: 'ua_attack', url: '/', rule: 'sqlmap'}
-    ];
+    function showAddIpModal() {
+        document.getElementById('add-ip-modal').classList.add('show');
+    }
 
-    const tbody = document.querySelector('#logs-table tbody');
-    tbody.innerHTML = mockLogs.map(log => `
+    function closeModal() {
+        document.getElementById('add-ip-modal').classList.remove('show');
+    }
+
+    function addIp() {
+        const ip = document.getElementById('new-ip').value;
+        if (!ip) {
+            alert('请输入IP地址');
+            return;
+        }
+        alert(`添加 ${ip} 到${currentIpTab === 'blacklist' ? '黑名单' : '白名单'}`);
+        closeModal();
+        loadIpList();
+    }
+
+    // ==================== Logs ====================
+    function loadLogs() {
+        const mockLogs = [
+            {
+                time: '2026-06-18 10:30:15',
+                ip: '192.168.1.100',
+                server: 'example.com',
+                type: 'args_attack',
+                url: '/test.php?id=1\' or \'1\'=\'1',
+                rule: 'eval\\('
+            },
+            {
+                time: '2026-06-18 10:28:32',
+                ip: '10.0.0.50',
+                server: 'test.com',
+                type: 'cc_attack',
+                url: '/api/data',
+                rule: '100/60'
+            },
+            {
+                time: '2026-06-18 10:25:08',
+                ip: '172.16.0.1',
+                server: 'example.com',
+                type: 'ua_attack',
+                url: '/',
+                rule: 'sqlmap'
+            }
+        ];
+
+        const tbody = document.querySelector('#logs-table tbody');
+        tbody.innerHTML = mockLogs.map(log => `
     <tr>
       <td style="font-family: monospace; font-size: 12px;">${log.time}</td>
       <td><code style="color: var(--accent);">${log.ip}</code></td>
@@ -1243,57 +1441,57 @@
       <td><button class="btn" style="padding: 4px 10px; font-size: 11px;">详情</button></td>
     </tr>
   `).join('');
-  }
-
-  function clearLogs() {
-    if (confirm('确定清理7天前的日志吗？')) {
-      alert('日志清理完成');
     }
-  }
 
-  // ==================== Realtime ====================
-  function toggleRealtime() {
-    realtimeEnabled = !realtimeEnabled;
-    document.getElementById('realtime-toggle').classList.toggle('on', realtimeEnabled);
-    if (realtimeEnabled) {
-      startRealtime();
-    } else {
-      stopRealtime();
+    function clearLogs() {
+        if (confirm('确定清理7天前的日志吗？')) {
+            alert('日志清理完成');
+        }
     }
-  }
 
-  function startRealtime() {
-    if (!realtimeEnabled) return;
-    stopRealtime();
-    updateRealtime();
-    realtimeTimer = setInterval(updateRealtime, 3000);
-  }
-
-  function stopRealtime() {
-    if (realtimeTimer) {
-      clearInterval(realtimeTimer);
-      realtimeTimer = null;
+    // ==================== Realtime ====================
+    function toggleRealtime() {
+        realtimeEnabled = !realtimeEnabled;
+        document.getElementById('realtime-toggle').classList.toggle('on', realtimeEnabled);
+        if (realtimeEnabled) {
+            startRealtime();
+        } else {
+            stopRealtime();
+        }
     }
-  }
 
-  function updateRealtime() {
-    const now = new Date().toLocaleTimeString('zh-CN');
+    function startRealtime() {
+        if (!realtimeEnabled) return;
+        stopRealtime();
+        updateRealtime();
+        realtimeTimer = setInterval(updateRealtime, 3000);
+    }
 
-    // 模拟实时数据
-    const blockedFeed = document.getElementById('realtime-blocked');
-    const accessFeed = document.getElementById('realtime-access');
+    function stopRealtime() {
+        if (realtimeTimer) {
+            clearInterval(realtimeTimer);
+            realtimeTimer = null;
+        }
+    }
 
-    const mockBlocked = [
-      {time: now, ip: '192.168.1.' + Math.floor(Math.random()*255), url: '/test.php', type: 'args'},
-      {time: now, ip: '10.0.0.' + Math.floor(Math.random()*255), url: '/admin', type: 'url'}
-    ];
+    function updateRealtime() {
+        const now = new Date().toLocaleTimeString('zh-CN');
 
-    const mockAccess = [
-      {time: now, ip: '172.16.0.' + Math.floor(Math.random()*255), url: '/index.html', status: 'normal'},
-      {time: now, ip: '192.168.2.' + Math.floor(Math.random()*255), url: '/api/data', status: 'normal'}
-    ];
+        // 模拟实时数据
+        const blockedFeed = document.getElementById('realtime-blocked');
+        const accessFeed = document.getElementById('realtime-access');
 
-    blockedFeed.innerHTML = mockBlocked.map(item => `
+        const mockBlocked = [
+            {time: now, ip: '192.168.1.' + Math.floor(Math.random() * 255), url: '/test.php', type: 'args'},
+            {time: now, ip: '10.0.0.' + Math.floor(Math.random() * 255), url: '/admin', type: 'url'}
+        ];
+
+        const mockAccess = [
+            {time: now, ip: '172.16.0.' + Math.floor(Math.random() * 255), url: '/index.html', status: 'normal'},
+            {time: now, ip: '192.168.2.' + Math.floor(Math.random() * 255), url: '/api/data', status: 'normal'}
+        ];
+
+        blockedFeed.innerHTML = mockBlocked.map(item => `
     <div class="feed-item">
       <span class="time">${item.time}</span>
       <span class="ip">${item.ip}</span>
@@ -1302,7 +1500,7 @@
     </div>
   `).join('') + blockedFeed.innerHTML;
 
-    accessFeed.innerHTML = mockAccess.map(item => `
+        accessFeed.innerHTML = mockAccess.map(item => `
     <div class="feed-item">
       <span class="time">${item.time}</span>
       <span class="ip">${item.ip}</span>
@@ -1311,25 +1509,43 @@
     </div>
   `).join('') + accessFeed.innerHTML;
 
-    // 限制显示数量
-    if (blockedFeed.children.length > 50) {
-      blockedFeed.innerHTML = blockedFeed.innerHTML.substring(0, blockedFeed.innerHTML.indexOf('</div>') + 6) + '...';
+        // 限制显示数量
+        if (blockedFeed.children.length > 50) {
+            blockedFeed.innerHTML = blockedFeed.innerHTML.substring(0, blockedFeed.innerHTML.indexOf('</div>') + 6) + '...';
+        }
     }
-  }
 
-  // ==================== Settings ====================
-  function saveSettings() {
-    alert('设置已保存');
-  }
+    // ==================== Settings ====================
+    function saveSettings() {
+        alert('设置已保存');
+    }
 
-  // ==================== Init ====================
-  window.addEventListener('DOMContentLoaded', () => {
-    refreshStats();
-  });
+    // ==================== Init ====================
+    window.addEventListener('DOMContentLoaded', () => {
+        refreshStats();
 
-  window.addEventListener('beforeunload', () => {
-    stopRealtime();
-  });
+        // 自动调整宝塔弹窗宽度
+        try {
+            var layerEl = parent.document.querySelector('.layui-layer[type="page"]');
+            if (layerEl) {
+                layerEl.style.width = '1200px';
+                var w = parent.innerWidth || parent.document.documentElement.clientWidth;
+                layerEl.style.left = Math.max(0, (w - 1200) / 2) + 'px';
+                // 同步调整内容区高度
+                var contentEl = layerEl.querySelector('.layui-layer-content');
+                if (contentEl) {
+                    var titleEl = layerEl.querySelector('.layui-layer-title');
+                    var titleH = titleEl ? titleEl.offsetHeight : 0;
+                    var layerH = parseInt(layerEl.style.height) || layerEl.offsetHeight || 900;
+                    contentEl.style.height = (layerH - titleH) + 'px';
+                }
+            }
+        } catch(e) {}
+    });
+
+    window.addEventListener('beforeunload', () => {
+        stopRealtime();
+    });
 </script>
 
 </body>
